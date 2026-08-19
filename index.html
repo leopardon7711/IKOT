@@ -185,7 +185,7 @@ function openAdd(){
 }
 async function savePlace(e){
   e.preventDefault();
-  if(!family){toast("先に家族を作るか参加してね");familyDlg.showModal();return}
+  if(res.error){console.error(res.error);alert("保存失敗: "+(res.error.message||res.error));return}
   const payload={family_id:family.id,name:$("f_name").value.trim(),who:$("f_who").value,state:$("f_state").value,category:$("f_cat").value,source_url:$("f_source").value.trim()||null,place:$("f_place").value.trim()||null,budget:$("f_budget").value.trim()||null,ages:$("f_ages").value.trim()||null,duration:$("f_duration").value.trim()||null,photo_url:$("f_photo").value.trim()||null,memo:$("f_memo").value.trim()||null};
   let res=editingId?await sb.from("ikot_places").update(payload).eq("id",editingId):await sb.from("ikot_places").insert(payload);
   if(res.error){console.error(res.error);toast("保存できなかった");return}
