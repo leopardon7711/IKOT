@@ -1,4 +1,4 @@
-<!doctype html>
+は<!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -232,6 +232,16 @@ async function shareApp(){
   else{await navigator.clipboard?.writeText(url);toast("IKOTのURLをコピーした！")}
 }
 function readShared(){
+  const p = new URLSearchParams(location.search);
+
+  alert(
+    "title=" + (p.get("title") || "") +
+    "\n\ntext=" + (p.get("text") || "") +
+    "\n\nurl=" + (p.get("url") || "") +
+    "\n\nsearch=" + location.search
+  );
+
+  // この下は今ある処理をそのまま残す
   const p = new URLSearchParams(location.search);
 
   const title = p.get("title") || "";
