@@ -5,7 +5,7 @@ self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./manifest.webmanifest','./icon.svg'])));
 });
 
-self.self.addEventListener('activate', e => {
+self.addEventListener('activate', e => {
   e.waitUntil(self.clients.claim());
 });
 
