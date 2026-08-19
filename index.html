@@ -217,7 +217,7 @@ function editPlace(id){
 async function createFamily(){
   const name=$("familyName").value.trim()||"IKOTファミリー";
   const {data,error}=await sb.rpc("ikot_create_family",{p_name:name});
-  if(error){console.error(error);toast("家族を作れなかった");return}
+  if(error){console.error(error);toast("家族作成失敗: "+(error.message||error));return}
   await loadFamily();await loadPlaces();subscribe();toast("家族を作った！");$("familyStatus").textContent=`現在：${family.name}　招待コード：${family.invite_code}`;
 }
 async function joinFamily(){
