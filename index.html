@@ -1,4 +1,4 @@
-は<!doctype html>
+<!doctype html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -269,9 +269,9 @@ function readShared(){
     setTimeout(()=>{
       openAdd();
 
-      $("#f_name").value = name;
-      $("#f_source").value = sharedUrl;
-      $("#f_memo").value = cleanText && cleanText !== name ? cleanText : "";
+      $("f_name").value = name;
+      $("f_source").value = sharedUrl;
+      $("f_memo").value = cleanText && cleanText !== name ? cleanText : "";
 
     },400);
 
