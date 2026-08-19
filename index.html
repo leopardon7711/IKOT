@@ -152,7 +152,7 @@ async function ensureAuth(){
   const {data:{session}}=await sb.auth.getSession();
   if(session){user=session.user;return true}
   const {data,error}=await sb.auth.signInAnonymously();
-  if(error){toast("匿名ログイン失敗: "+(error.message||error))console.error(error);return false}
+  if(error){toast("匿名ログイン失敗: "+(error.message||error));console.error(error);return false}
   user=data.user;return true
 }
 async function loadFamily(){
