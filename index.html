@@ -232,11 +232,41 @@ async function shareApp(){
   else{await navigator.clipboard?.writeText(url);toast("IKOTのURLをコピーした！")}
 }
 function readShared(){
-  const p=new URLSearchParams(location.search);
-  const title=p.get("title"),text=p.get("text"),url=p.get("url");
-  if(title||text||url){
-    setTimeout(()=>{openAdd();$("f_name").value=title||text||"共有した場所";$("f_source").value=url||"";$("f_memo").value=text&&text!==title?text:"";},400);
-    history.replaceState({},document.title,location.pathname);
+  const p = new URLSearchParams(location.search);
+
+  const title = p.get("title") || "";
+  const text  = p.get("text") || "";
+  const url   = p.get("url") || "";
+
+  // url欄が空でも、共有本文の中からURLを探す
+  const combined = [url, text, title].join(" ");
+  const match = combined.match(/https?:\/\/[^\s]+/);
+  const sharedUrl = url || (match ? match[0] : "");
+
+  // メモからURLだけ取り除く
+  const cleanText = text
+    .replace(/https?:\/\/[^\s]+/g, "")
+    .trim();
+
+  // SNSタイトルが取れていればタイトル優先
+  let name = title.trim();
+
+  // タイトルがない場合は、URLを除いた共有文を仮タイトルにする
+  if(!name){
+    name = cleanText || "共有した場所";
+  }
+
+  if(title || text || url){
+    setTimeout(()=>{
+      openAdd();
+
+      $("#f_name").value = name;
+      $("#f_source").value = sharedUrl;
+      $("#f_memo").value = cleanText && cleanText !== name ? cleanText : "";
+
+    },400);
+
+    history.replaceState({}, document.title, location.pathname);
   }
 }
 
