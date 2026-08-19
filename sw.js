@@ -1,11 +1,13 @@
-const CACHE='ikot-final-v2';
+const CACHE='ikot-final-v4';
 
 self.addEventListener('install',e=>{
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./manifest.webmanifest','./icon.svg'])));
 });
 
-self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+self.self.addEventListener('activate', e => {
+  e.waitUntil(self.clients.claim());
+});
 
 self.addEventListener('fetch',e=>{
   const u=new URL(e.request.url);
