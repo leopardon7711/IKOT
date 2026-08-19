@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="description" content="IKOT — いつか行きたいを、みんなで。">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg">
+<title>IKOT</title>
+<style>
+:root{--bg:#f6f6f3;--card:#fff;--text:#161616;--muted:#777;--line:#e5e5e0;--dark:#111;--soft:#efefeb;--accent:#ff5b45}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.top{position:sticky;top:0;z-index:20;background:#fffffff2;backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.topin{max-width:1050px;margin:auto;padding:14px 15px 10px}.brand{font-weight:950;font-size:27px;letter-spacing:.09em}.sub{font-size:11px;color:var(--muted)}
+.row{display:flex;gap:7px;align-items:center}.scroll{overflow:auto;white-space:nowrap;scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
+.pill{border:0;background:var(--soft);border-radius:999px;padding:8px 12px;color:#333}.pill.on{background:var(--dark);color:#fff}
+main{max-width:1050px;margin:auto;padding:14px 15px 100px}
+.hero{background:var(--dark);color:#fff;border-radius:24px;padding:20px;margin:8px 0 18px}.hero h1{font-size:22px;margin:0 0 6px}.hero p{font-size:13px;line-height:1.65;color:#ccc;margin:0 0 14px}
+.btn{border:0;border-radius:12px;padding:10px 13px;background:#eee;color:#111}.btn.dark{background:#fff}.btn.black{background:#111;color:#fff}.btn.ghost{background:#fff;border:1px solid var(--line)}
+.section{display:flex;justify-content:space-between;align-items:center;margin:20px 2px 9px}.section h2{font-size:18px;margin:0}.section span{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}.cover{height:160px;background:#e7e7e2;display:flex;align-items:center;justify-content:center;font-size:48px;overflow:hidden}.cover img{width:100%;height:100%;object-fit:cover}.body{padding:13px}.title{font-weight:900;font-size:18px}.meta{font-size:12px;color:var(--muted);margin-top:4px}.tags{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}.tag{background:var(--soft);border-radius:99px;padding:5px 8px;font-size:11px}.note{font-size:13px;line-height:1.55}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.actions a,.actions button{font-size:12px;text-decoration:none;border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px;color:#222}
+.heart{font-weight:800}.empty{text-align:center;padding:45px 10px;color:var(--muted);background:#fff;border:1px dashed #d5d5cf;border-radius:18px}
+.fab{position:fixed;right:17px;bottom:17px;z-index:30;border:0;background:#111;color:#fff;border-radius:999px;padding:15px 18px;font-weight:900;box-shadow:0 8px 30px #0004}
+dialog{border:0;border-radius:22px;width:min(94vw,600px);padding:0;box-shadow:0 25px 80px #0007}dialog::backdrop{background:#0008}.modal{padding:19px}.modal h2{margin:0 0 7px}.small{font-size:12px;color:var(--muted);line-height:1.6}
+label{display:block;font-size:12px;color:#666;margin:11px 0 5px}input,select,textarea{width:100%;border:1px solid #ccc;border-radius:11px;padding:10px;background:#fff}textarea{min-height:80px;resize:vertical}.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.end{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#111;color:#fff;border-radius:12px;padding:11px 14px;z-index:100;display:none;max-width:90vw;text-align:center}
+.loading{padding:35px;text-align:center;color:var(--muted)}.danger{color:#b00020}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.cover{height:175px}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top"><div class="topin">
+  <div class="row" style="justify-content:space-between"><div><div class="brand">IKOT</div><div class="sub">いつか行きたいを、みんなで。</div></div><button class="btn ghost" id="familyBtn">家族</button></div>
+  <div class="scroll row" id="states" style="margin-top:10px"></div>
+  <div class="scroll row" id="cats" style="margin-top:7px"></div>
+</div></header>
+
+<main>
+<section class="hero">
+  <h1>家族のおでかけ基地</h1>
+  <p>行きたい場所を保存して、夫婦で共有。あとで行く場所を「いつか」から「行く」に変えていこう。</p>
+  <div class="row" style="flex-wrap:wrap">
+    <button class="btn dark" id="shareBtn">📤 このIKOTを共有</button>
+    <button class="btn dark" id="addFromShareBtn">📲 共有URLから追加</button>
+    <button class="btn dark" id="aiBtn">✨ AIで整理</button>
+  </div>
+</section>
+
+<div class="section"><h2>🔥 今度行きたい</h2><span id="nextCount"></span></div>
+<div id="next" class="grid"></div>
+
+<div class="section"><h2>❤️ 家族で人気</h2><span>投票順</span></div>
+<div id="popular" class="grid"></div>
+
+<div class="section"><h2>📚 行きたい場所</h2><span id="allCount"></span></div>
+<div id="list" class="grid"></div>
+</main>
+
+<button class="fab" id="fab">＋ 行きたい場所</button>
+<div class="toast" id="toast"></div>
+
+<dialog id="placeDlg"><div class="modal">
+  <h2 id="placeDlgTitle">行きたい場所を追加</h2>
+  <form id="placeForm">
+    <label>場所・施設名</label><input id="f_name" required placeholder="例：○○アスレチック">
+    <div class="two">
+      <div><label>追加した人</label><select id="f_who"><option>俺</option><option>奥さん</option><option>子供</option></select></div>
+      <div><label>状態</label><select id="f_state"><option>行きたい</option><option>候補</option><option>行く予定</option><option>行った</option></select></div>
+    </div>
+    <label>カテゴリ</label><select id="f_cat"></select>
+    <label>元投稿・公式URL</label><input id="f_source" type="url" placeholder="Instagram / TikTok / YouTube / X / Web">
+    <div class="two">
+      <div><label>場所</label><input id="f_place" placeholder="浅草、東京など"></div>
+      <div><label>予算</label><input id="f_budget" placeholder="例：大人1500円"></div>
+    </div>
+    <div class="two">
+      <div><label>動画URL（任意）</label><input id="f_video" type="url" placeholder="TikTok / YouTubeなど"></div>
+      <div><label>画像URL（任意）</label><input id="f_photo" type="url" placeholder="画像URL"></div>
+    </div>
+    <div class="two">
+      <div><label>おすすめ年齢</label><input id="f_ages" placeholder="5〜10歳"></div>
+      <div><label>所要時間</label><input id="f_duration" placeholder="半日"></div>
+    </div>
+    <label>メモ</label><textarea id="f_memo" placeholder="子供が喜びそう、雨でもOK…"></textarea>
+    <div class="end"><button type="button" class="btn ghost" onclick="placeDlg.close()">キャンセル</button><button class="btn black" id="savePlace">保存</button></div>
+  </form>
+</div></dialog>
+
+<dialog id="familyDlg"><div class="modal">
+  <h2>👨‍👩‍👦 家族IKOT</h2>
+  <p class="small" id="familyStatus">読み込み中…</p>
+  <label>家族名</label><input id="familyName" placeholder="例：浩平ファミリー">
+  <div class="end"><button class="btn black" id="createFamily">新しい家族を作る</button></div>
+  <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+  <label>招待コード</label><input id="joinCode" placeholder="例：AB7K2Q">
+  <div class="end"><button class="btn black" id="joinFamily">この家族に参加</button></div>
+  <p class="small">本番版では、招待コードだけで夫婦それぞれの端末から同じ家族データを見られる設計。アカウント登録なしで試せます。</p>
+  <div class="end"><button class="btn ghost" onclick="familyDlg.close()">閉じる</button></div>
+</div></dialog>
+
+<dialog id="setupDlg"><div class="modal">
+  <h2>IKOTを接続</h2>
+  <p class="small">最初の1回だけ、IKOTのデータベース接続先を設定します。Supabaseの「Project URL」と「Publishable/Anon Key」を入力してください。秘密鍵（service_role）は絶対に入力しません。</p>
+  <label>Supabase Project URL</label><input id="s_url" placeholder="https://xxxxx.supabase.co">
+  <label>Publishable / Anon Key</label><input id="s_key" placeholder="sb_publishable_... または eyJ...">
+  <label>AI整理エンドポイント（任意）</label><input id="s_ai" placeholder="https://xxxx.supabase.co/functions/v1/ikot-ai">
+  <div class="end"><button class="btn black" id="connectBtn">接続する</button></div>
+  <p class="small">設定はこの端末のブラウザに保存されます。</p>
+</div></dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const CATS=["食事","体を動かす","旅行","屋内施設","屋外施設","遊園地・テーマパーク","水族館・動物園","自然・公園","キャンプ","買い物","イベント","その他"];
+const STATES=["全部","行きたい","候補","行く予定","行った"];
+let sb=null, user=null, family=null, places=[], activeState="全部", activeCat="全部", editingId=null, realtime=null;
+
+const $=id=>document.getElementById(id);
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function toast(t){$("toast").textContent=t;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",1800)}
+function catOptions(){ $("f_cat").innerHTML=CATS.map(c=>`<option>${c}</option>`).join("") }
+function setButtons(){
+  $("states").innerHTML=STATES.map(s=>`<button class="pill ${s===activeState?"on":""}" onclick="activeState='${s}';render()">${s}</button>`).join("");
+  $("cats").innerHTML=["全部",...CATS].map(c=>`<button class="pill ${c===activeCat?"on":""}" onclick="activeCat='${c}';render()">${c}</button>`).join("");
+}
+function card(x){
+  const map=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x.place||x.name)}`;
+  return `<article class="card">
+    <div class="cover">${x.photo?`<img src="${esc(x.photo)}" onerror="this.parentElement.innerHTML='📍'">`:"📍"}</div>
+    <div class="body">
+      <div class="title">${esc(x.name)}</div>
+      <div class="meta">👤 ${esc(x.who||"")} ・ ${esc(x.state||"")} ${x.place?`・ 📍 ${esc(x.place)}`:""}</div>
+      <div class="tags"><span class="tag">${esc(x.category||"その他")}</span>${x.ages?`<span class="tag">👦 ${esc(x.ages)}</span>`:""}${x.duration?`<span class="tag">⏱ ${esc(x.duration)}</span>`:""}${x.budget?`<span class="tag">💴 ${esc(x.budget)}</span>`:""}</div>
+      ${x.memo?`<div class="note">${esc(x.memo)}</div>`:""}
+      <div class="actions"><button class="heart" onclick="vote('${x.id}')">❤️ 行きたい！ ${x.votes||0}</button>${x.source?`<a href="${esc(x.source)}" target="_blank" rel="noopener">🔗 元ページ</a>`:""}<a href="${map}" target="_blank" rel="noopener">📍 地図</a><button onclick="cycleState('${x.id}')">状態変更</button><button onclick="editPlace('${x.id}')">編集</button><button onclick="deletePlace('${x.id}')">削除</button></div>
+    </div></article>`
+}
+function render(){
+  setButtons();
+  const arr=places.filter(x=>(activeState==="全部"||x.state===activeState)&&(activeCat==="全部"||x.category===activeCat));
+  $("allCount").textContent=`${arr.length}件`;
+  const next=places.filter(x=>x.state==="行く予定"||x.state==="候補").slice(0,4);
+  $("nextCount").textContent=`${next.length}件`;
+  $("next").innerHTML=next.length?next.map(card).join(""):`<div class="empty">「候補」や「行く予定」を作るとここに出るよ。</div>`;
+  const popular=[...places].sort((a,b)=>(b.votes||0)-(a.votes||0)).slice(0,4);
+  $("popular").innerHTML=popular.length?popular.map(card).join(""):`<div class="empty">まだ場所がないよ。</div>`;
+  $("list").innerHTML=arr.length?arr.map(card).join(""):`<div class="empty">まだないよ。<br>「＋ 行きたい場所」から追加してみよう。</div>`;
+}
+async function ensureAuth(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){user=session.user;return true}
+  const {data,error}=await sb.auth.signInAnonymously();
+  if(error){toast("匿名ログインに失敗。Supabase設定を確認してね");console.error(error);return false}
+  user=data.user;return true
+}
+async function loadFamily(){
+  const {data,error}=await sb.rpc("ikot_my_family");
+  if(error){console.error(error);$("familyStatus").textContent="まだ家族に参加していません。";family=null;return}
+  family=data?.[0]||null;
+  $("familyStatus").textContent=family?`現在：${family.name}　招待コード：${family.invite_code}`:"まだ家族に参加していません。";
+}
+async function loadPlaces(){
+  if(!family){places=[];render();return}
+  const {data,error}=await sb.from("ikot_places").select("*").eq("family_id",family.id).order("created_at",{ascending:false});
+  if(error){console.error(error);toast("場所の読み込みに失敗");return}
+  places=data||[];render();
+}
+function subscribe(){
+  if(realtime)sb.removeChannel(realtime);
+  if(!family)return;
+  realtime=sb.channel("ikot-places-"+family.id).on("postgres_changes",{event:"*",schema:"public",table:"ikot_places",filter:`family_id=eq.${family.id}`},()=>loadPlaces()).subscribe();
+}
+async function connect(){
+  const url=$("s_url").value.trim(), key=$("s_key").value.trim(); const ai=$("s_ai").value.trim();
+  if(!url||!key){toast("URLとKeyを入力してね");return}
+  localStorage.setItem("IKOT_SUPABASE_URL",url);localStorage.setItem("IKOT_SUPABASE_KEY",key);if(ai)localStorage.setItem("IKOT_AI_URL",ai);
+  sb=window.supabase.createClient(url,key);
+  setupDlg.close();
+  if(await ensureAuth()){await loadFamily();await loadPlaces();subscribe();toast("IKOTに接続した！")}
+}
+function openAdd(){
+  editingId=null;$("placeDlgTitle").textContent="行きたい場所を追加";$("placeForm").reset();catOptions();$("placeDlg").showModal();
+}
+async function savePlace(e){
+  e.preventDefault();
+  if(!family){toast("先に家族を作るか参加してね");familyDlg.showModal();return}
+  const payload={family_id:family.id,name:$("f_name").value.trim(),who:$("f_who").value,state:$("f_state").value,category:$("f_cat").value,source_url:$("f_source").value.trim()||null,place:$("f_place").value.trim()||null,budget:$("f_budget").value.trim()||null,ages:$("f_ages").value.trim()||null,duration:$("f_duration").value.trim()||null,photo_url:$("f_photo").value.trim()||null,memo:$("f_memo").value.trim()||null};
+  let res=editingId?await sb.from("ikot_places").update(payload).eq("id",editingId):await sb.from("ikot_places").insert(payload);
+  if(res.error){console.error(res.error);toast("保存できなかった");return}
+  placeDlg.close();await loadPlaces();toast(editingId?"更新した！":"IKOTに保存した！");
+}
+async function vote(id){
+  const {error}=await sb.rpc("ikot_vote",{p_place_id:id});
+  if(error){console.error(error);toast("投票できなかった");return}
+  await loadPlaces();toast("「行きたい！」を追加");
+}
+async function cycleState(id){
+  const x=places.find(p=>p.id===id);if(!x)return;
+  const i=STATES.indexOf(x.state), next=STATES[(i<1?1:i+1)%STATES.length];
+  const {error}=await sb.from("ikot_places").update({state:next}).eq("id",id);
+  if(error)toast("変更できなかった");else{await loadPlaces();toast("「"+next+"」に変更")}
+}
+async function deletePlace(id){
+  if(!confirm("この場所を削除する？"))return;
+  const {error}=await sb.from("ikot_places").delete().eq("id",id);
+  if(error)toast("削除できなかった");else{await loadPlaces();toast("削除した")}
+}
+function editPlace(id){
+  const x=places.find(p=>p.id===id);if(!x)return;
+  editingId=id;$("placeDlgTitle").textContent="行きたい場所を編集";catOptions();
+  $("f_name").value=x.name||"";$("f_who").value=x.who||"俺";$("f_state").value=x.state||"行きたい";$("f_cat").value=x.category||"その他";
+  $("f_source").value=x.source_url||"";$("f_place").value=x.place||"";$("f_budget").value=x.budget||"";$("f_ages").value=x.ages||"";$("f_duration").value=x.duration||"";$("f_photo").value=x.photo_url||"";$("f_memo").value=x.memo||"";
+  placeDlg.showModal();
+}
+async function createFamily(){
+  const name=$("familyName").value.trim()||"IKOTファミリー";
+  const {data,error}=await sb.rpc("ikot_create_family",{p_name:name});
+  if(error){console.error(error);toast("家族を作れなかった");return}
+  await loadFamily();await loadPlaces();subscribe();toast("家族を作った！");$("familyStatus").textContent=`現在：${family.name}　招待コード：${family.invite_code}`;
+}
+async function joinFamily(){
+  const code=$("joinCode").value.trim().toUpperCase();
+  if(!code){toast("招待コードを入力してね");return}
+  const {data,error}=await sb.rpc("ikot_join_family",{p_code:code});
+  if(error){console.error(error);toast("そのコードでは参加できなかった");return}
+  await loadFamily();await loadPlaces();subscribe();toast("家族に参加した！");
+}
+async function shareApp(){
+  const url=location.href;
+  if(navigator.share){try{await navigator.share({title:"IKOT",text:"いつか行きたいを、みんなで。",url})}catch{}}
+  else{await navigator.clipboard?.writeText(url);toast("IKOTのURLをコピーした！")}
+}
+function readShared(){
+  const p=new URLSearchParams(location.search);
+  const title=p.get("title"),text=p.get("text"),url=p.get("url");
+  if(title||text||url){
+    setTimeout(()=>{openAdd();$("f_name").value=title||text||"共有した場所";$("f_source").value=url||"";$("f_memo").value=text&&text!==title?text:"";},400);
+    history.replaceState({},document.title,location.pathname);
+  }
+}
+
+async function aiOrganize(){
+  const source=$("f_source").value.trim(), memo=$("f_memo").value.trim(), name=$("f_name").value.trim();
+  if(!source && !memo && !name){toast("URLかタイトルを先に入れてね");return}
+  const key=localStorage.getItem("IKOT_AI_URL");
+  if(!key){toast("AI接続先が未設定。設定画面で登録してね");setupDlg.showModal();return}
+  try{
+    const r=await fetch(key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:name,text:memo,url:source})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||"AI error");
+    $("f_name").value=d.name||name;$("f_cat").value=d.category||$("f_cat").value;$("f_place").value=d.place||$("f_place").value;
+    $("f_budget").value=d.budget||$("f_budget").value;$("f_ages").value=d.ages||$("f_ages").value;$("f_duration").value=d.duration||$("f_duration").value;
+    $("f_memo").value=d.memo||memo;$("f_photo").value=d.photo_url||$("f_photo").value;$("f_video").value=d.video_url||$("f_video").value;
+    toast("AIで整理した！");
+  }catch(e){console.error(e);toast("AI整理に失敗。接続先を確認してね")}
+}
+
+async function boot(){
+  catOptions();render();
+  if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  $("s_ai").value=localStorage.getItem("IKOT_AI_URL")||"";
+  const url=localStorage.getItem("IKOT_SUPABASE_URL"),key=localStorage.getItem("IKOT_SUPABASE_KEY");
+  if(!url||!key){setupDlg.showModal();return}
+  sb=window.supabase.createClient(url,key);
+  if(await ensureAuth()){await loadFamily();await loadPlaces();subscribe();readShared()}
+}
+$("fab").onclick=openAdd;$("familyBtn").onclick=()=>{loadFamily();familyDlg.showModal()};$("shareBtn").onclick=shareApp;
+$("addFromShareBtn").onclick=()=>{openAdd();toast("共有したURLを貼ってね")};$("placeForm").addEventListener("submit",savePlace);
+$("connectBtn").onclick=connect;$("aiBtn").onclick=aiOrganize;$("createFamily").onclick=createFamily;$("joinFamily").onclick=joinFamily;
+boot();
+</script>
+</body>
+</html>
