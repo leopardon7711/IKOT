@@ -295,3 +295,6 @@ grant execute on function public.ikot_create_family(text) to authenticated;
 grant execute on function public.ikot_join_family(text) to authenticated;
 grant execute on function public.ikot_my_family() to authenticated;
 grant execute on function public.ikot_vote(uuid) to authenticated;
+
+-- ===== v6: 動画URL保存対応 =====
+alter table public.ikot_places add column if not exists video_url text;

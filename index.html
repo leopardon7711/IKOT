@@ -27,7 +27,7 @@ main{max-width:1050px;margin:auto;padding:14px 15px 100px}
 dialog{border:0;border-radius:22px;width:min(94vw,600px);padding:0;box-shadow:0 25px 80px #0007}dialog::backdrop{background:#0008}.modal{padding:19px}.modal h2{margin:0 0 7px}.small{font-size:12px;color:var(--muted);line-height:1.6}
 label{display:block;font-size:12px;color:#666;margin:11px 0 5px}input,select,textarea{width:100%;border:1px solid #ccc;border-radius:11px;padding:10px;background:#fff}textarea{min-height:80px;resize:vertical}.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.end{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 .toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#111;color:#fff;border-radius:12px;padding:11px 14px;z-index:100;display:none;max-width:90vw;text-align:center}
-.loading{padding:35px;text-align:center;color:var(--muted)}.danger{color:#b00020}
+.loading{padding:35px;text-align:center;color:var(--muted)}.danger{color:#b00020}.airow{display:flex;gap:8px;align-items:center;margin-top:7px}.aistatus{font-size:12px;color:var(--muted);line-height:1.4}.aistatus.ok{color:#287a3c}.aistatus.err{color:#b00020}.spin{display:inline-block;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:600px){.grid{grid-template-columns:1fr}.cover{height:175px}.two{grid-template-columns:1fr}}
 </style>
 </head>
@@ -72,6 +72,7 @@ label{display:block;font-size:12px;color:#666;margin:11px 0 5px}input,select,tex
     </div>
     <label>カテゴリ</label><select id="f_cat"></select>
     <label>元投稿・公式URL</label><input id="f_source" type="url" placeholder="Instagram / TikTok / YouTube / X / Web">
+    <div class="airow"><button type="button" class="btn ghost" id="aiFillBtn">✨ URLからAI自動入力</button><span class="aistatus" id="aiStatus"></span></div>
     <div class="two">
       <div><label>場所</label><input id="f_place" placeholder="浅草、東京など"></div>
       <div><label>予算</label><input id="f_budget" placeholder="例：大人1500円"></div>
@@ -106,7 +107,6 @@ label{display:block;font-size:12px;color:#666;margin:11px 0 5px}input,select,tex
   <p class="small">最初の1回だけ、IKOTのデータベース接続先を設定します。Supabaseの「Project URL」と「Publishable/Anon Key」を入力してください。秘密鍵（service_role）は絶対に入力しません。</p>
   <label>Supabase Project URL</label><input id="s_url" placeholder="https://xxxxx.supabase.co">
   <label>Publishable / Anon Key</label><input id="s_key" placeholder="sb_publishable_... または eyJ...">
-  <label>AI整理エンドポイント（任意）</label><input id="s_ai" placeholder="https://xxxx.supabase.co/functions/v1/ikot-ai">
   <div class="end"><button class="btn black" id="connectBtn">接続する</button></div>
   <p class="small">設定はこの端末のブラウザに保存されます。</p>
 </div></dialog>
@@ -134,7 +134,7 @@ function card(x){
       <div class="meta">👤 ${esc(x.who||"")} ・ ${esc(x.state||"")} ${x.place?`・ 📍 ${esc(x.place)}`:""}</div>
       <div class="tags"><span class="tag">${esc(x.category||"その他")}</span>${x.ages?`<span class="tag">👦 ${esc(x.ages)}</span>`:""}${x.duration?`<span class="tag">⏱ ${esc(x.duration)}</span>`:""}${x.budget?`<span class="tag">💴 ${esc(x.budget)}</span>`:""}</div>
       ${x.memo?`<div class="note">${esc(x.memo)}</div>`:""}
-      <div class="actions"><button class="heart" onclick="vote('${x.id}')">❤️ 行きたい！ ${x.votes||0}</button>${x.source_url?`<a href="${esc(x.source_url)}" target="_blank" rel="noopener">🔗 元ページ</a>`:""}<a href="${map}" target="_blank" rel="noopener">📍 地図</a><button onclick="cycleState('${x.id}')">状態変更</button><button onclick="editPlace('${x.id}')">編集</button><button onclick="deletePlace('${x.id}')">削除</button></div>
+      <div class="actions"><button class="heart" onclick="vote('${x.id}')">❤️ 行きたい！ ${x.votes||0}</button>${x.source_url?`<a href="${esc(x.source_url)}" target="_blank" rel="noopener">🔗 元ページ</a>`:""}${x.video_url&&x.video_url!==x.source_url?`<a href="${esc(x.video_url)}" target="_blank" rel="noopener">🎬 動画</a>`:""}<a href="${map}" target="_blank" rel="noopener">📍 地図</a><button onclick="cycleState('${x.id}')">状態変更</button><button onclick="editPlace('${x.id}')">編集</button><button onclick="deletePlace('${x.id}')">削除</button></div>
     </div></article>`
 }
 function render(){
@@ -173,15 +173,15 @@ function subscribe(){
   realtime=sb.channel("ikot-places-"+family.id).on("postgres_changes",{event:"*",schema:"public",table:"ikot_places",filter:`family_id=eq.${family.id}`},()=>loadPlaces()).subscribe();
 }
 async function connect(){
-  const url=$("s_url").value.trim(), key=$("s_key").value.trim(); const ai=$("s_ai").value.trim();
+  const url=$("s_url").value.trim(), key=$("s_key").value.trim();
   if(!url||!key){toast("URLとKeyを入力してね");return}
-  localStorage.setItem("IKOT_SUPABASE_URL",url);localStorage.setItem("IKOT_SUPABASE_KEY",key);if(ai)localStorage.setItem("IKOT_AI_URL",ai);
+  localStorage.setItem("IKOT_SUPABASE_URL",url);localStorage.setItem("IKOT_SUPABASE_KEY",key);
   sb=window.supabase.createClient(url,key);
   setupDlg.close();
   if(await ensureAuth()){await loadFamily();await loadPlaces();subscribe();toast("IKOTに接続した！")}
 }
 function openAdd(){
-  editingId=null;$("placeDlgTitle").textContent="行きたい場所を追加";$("placeForm").reset();catOptions();$("placeDlg").showModal();
+  editingId=null;$("placeDlgTitle").textContent="行きたい場所を追加";$("placeForm").reset();catOptions();setAiStatus("");$("placeDlg").showModal();
 }
 async function savePlace(e){
   e.preventDefault();
@@ -196,6 +196,7 @@ async function savePlace(e){
       state:$("f_state").value,
       category:$("f_cat").value,
       source_url:$("f_source").value.trim()||null,
+      video_url:$("f_video").value.trim()||null,
       place:$("f_place").value.trim()||null,
       budget:$("f_budget").value.trim()||null,
       ages:$("f_ages").value.trim()||null,
@@ -235,7 +236,7 @@ function editPlace(id){
   const x=places.find(p=>p.id===id);if(!x)return;
   editingId=id;$("placeDlgTitle").textContent="行きたい場所を編集";catOptions();
   $("f_name").value=x.name||"";$("f_who").value=x.who||"俺";$("f_state").value=x.state||"行きたい";$("f_cat").value=x.category||"その他";
-  $("f_source").value=x.source_url||"";$("f_place").value=x.place||"";$("f_budget").value=x.budget||"";$("f_ages").value=x.ages||"";$("f_duration").value=x.duration||"";$("f_photo").value=x.photo_url||"";$("f_memo").value=x.memo||"";
+  $("f_source").value=x.source_url||"";$("f_video").value=x.video_url||"";$("f_place").value=x.place||"";$("f_budget").value=x.budget||"";$("f_ages").value=x.ages||"";$("f_duration").value=x.duration||"";$("f_photo").value=x.photo_url||"";$("f_memo").value=x.memo||"";
   placeDlg.showModal();
 }
 async function createFamily(){
@@ -256,7 +257,16 @@ async function shareApp(){
   if(navigator.share){try{await navigator.share({title:"IKOT",text:"いつか行きたいを、みんなで。",url})}catch{}}
   else{await navigator.clipboard?.writeText(url);toast("IKOTのURLをコピーした！")}
 }
-function readShared(){
+function setAiStatus(text,type=""){
+  const el=$("aiStatus");
+  if(!el)return;
+  el.className="aistatus"+(type?" "+type:"");
+  el.innerHTML=text;
+}
+function looksLikeVideoUrl(url){
+  return /(?:instagram\.com\/(?:reel|reels)|tiktok\.com|youtu\.be|youtube\.com\/(?:watch|shorts))/i.test(url||"");
+}
+async function readShared(){
   const p=new URLSearchParams(location.search);
   const title=p.get("title")||"";
   const text=p.get("text")||"";
@@ -270,43 +280,72 @@ function readShared(){
   let name=title.trim()||cleanText||"共有した場所";
   if(/^https?:\/\//.test(name)) name="共有した場所";
 
-  setTimeout(()=>{
-    openAdd();
-    $("f_name").value=name;
-    $("f_source").value=sharedUrl;
-    $("f_memo").value=(cleanText&&cleanText!==name)?cleanText:"";
-    toast(sharedUrl?"SNSのリンクを受け取った！":"共有内容を受け取った！");
-  },250);
-
+  openAdd();
+  $("f_name").value=name;
+  $("f_source").value=sharedUrl;
+  $("f_memo").value=(cleanText&&cleanText!==name)?cleanText:"";
+  if(looksLikeVideoUrl(sharedUrl)) $("f_video").value=sharedUrl;
+  toast(sharedUrl?"SNSのリンクを受け取った！":"共有内容を受け取った！");
   history.replaceState({},document.title,location.pathname);
+
+  if(sharedUrl){
+    await new Promise(r=>setTimeout(r,150));
+    await aiOrganize({auto:true});
+  }
 }
-async function aiOrganize(){
+async function aiOrganize(opts={}){
+  const {auto=false}=opts;
+  if(!sb){if(!auto)toast("Supabaseに接続してね");return false}
   const source=$("f_source").value.trim(), memo=$("f_memo").value.trim(), name=$("f_name").value.trim();
-  if(!source && !memo && !name){toast("URLかタイトルを先に入れてね");return}
-  const key=localStorage.getItem("IKOT_AI_URL");
-  if(!key){toast("AI接続先が未設定。設定画面で登録してね");setupDlg.showModal();return}
+  if(!source && !memo && !name){if(!auto)toast("URLかタイトルを先に入れてね");return false}
+
+  const btn=$("aiFillBtn");
+  if(btn)btn.disabled=true;
+  setAiStatus('<span class="spin">◌</span> AIが施設情報を調べています…');
   try{
-    const r=await fetch(key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:name,text:memo,url:source})});
-    const d=await r.json(); if(!r.ok) throw new Error(d.error||"AI error");
-    $("f_name").value=d.name||name;$("f_cat").value=d.category||$("f_cat").value;$("f_place").value=d.place||$("f_place").value;
-    $("f_budget").value=d.budget||$("f_budget").value;$("f_ages").value=d.ages||$("f_ages").value;$("f_duration").value=d.duration||$("f_duration").value;
-    $("f_memo").value=d.memo||memo;$("f_photo").value=d.photo_url||$("f_photo").value;$("f_video").value=d.video_url||$("f_video").value;
-    toast("AIで整理した！");
-  }catch(e){console.error(e);toast("AI整理に失敗。接続先を確認してね")}
+    const {data,error}=await sb.functions.invoke("ikot-ai",{body:{title:name,text:memo,url:source}});
+    if(error) throw new Error(error.message||String(error));
+    if(!data || data.error) throw new Error(data?.error||"AIから結果を受け取れませんでした");
+
+    const currentName=$("f_name").value.trim();
+    if(data.name && (currentName==="共有した場所" || !currentName || auto)) $("f_name").value=data.name;
+    if(data.category && CATS.includes(data.category)) $("f_cat").value=data.category;
+    if(data.place) $("f_place").value=data.place;
+    if(data.budget) $("f_budget").value=data.budget;
+    if(data.ages) $("f_ages").value=data.ages;
+    if(data.duration) $("f_duration").value=data.duration;
+    if(data.memo) $("f_memo").value=data.memo;
+    if(data.photo_url) $("f_photo").value=data.photo_url;
+    if(data.video_url) $("f_video").value=data.video_url;
+    else if(looksLikeVideoUrl(source) && !$("f_video").value) $("f_video").value=source;
+
+    const confidence=Number(data.confidence||0);
+    const note=data.found===false?"施設を特定できなかったので、分かる項目だけ入れました。":(confidence>=0.75?"施設情報を自動入力しました。":"候補情報を入力しました。内容を確認してね。");
+    setAiStatus("✓ "+esc(note),"ok");
+    if(!auto)toast("AIで整理した！");
+    return true;
+  }catch(e){
+    console.error(e);
+    const msg=e?.message||String(e);
+    setAiStatus("AI自動入力は使えませんでした。URLはそのまま保存できます。","err");
+    if(!auto)alert("AI整理に失敗: "+msg);
+    return false;
+  }finally{
+    if(btn)btn.disabled=false;
+  }
 }
 
 async function boot(){
   catOptions();render();
   if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
-  $("s_ai").value=localStorage.getItem("IKOT_AI_URL")||"";
   const url=localStorage.getItem("IKOT_SUPABASE_URL"),key=localStorage.getItem("IKOT_SUPABASE_KEY");
   if(!url||!key){setupDlg.showModal();return}
   sb=window.supabase.createClient(url,key);
-  if(await ensureAuth()){await loadFamily();await loadPlaces();subscribe();readShared()}
+  if(await ensureAuth()){await loadFamily();await loadPlaces();subscribe();await readShared()}
 }
 $("fab").onclick=openAdd;$("familyBtn").onclick=()=>{loadFamily();familyDlg.showModal()};$("shareBtn").onclick=shareApp;
 $("addFromShareBtn").onclick=()=>{openAdd();toast("共有したURLを貼ってね")};$("placeForm").addEventListener("submit",savePlace);
-$("connectBtn").onclick=connect;$("aiBtn").onclick=aiOrganize;$("createFamily").onclick=createFamily;$("joinFamily").onclick=joinFamily;
+$("connectBtn").onclick=connect;$("aiFillBtn").onclick=()=>aiOrganize();$("aiBtn").onclick=()=>{if(!$("placeDlg").open)openAdd();setTimeout(()=>$("f_source").focus(),50)};$("createFamily").onclick=createFamily;$("joinFamily").onclick=joinFamily;
 boot();
 </script>
 </body>

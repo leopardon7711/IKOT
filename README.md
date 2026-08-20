@@ -1,53 +1,37 @@
-# IKOT 最終形 Webアプリ v1
+# IKOT v6 — SNS共有→AI自動入力版
 
-## 目標
-「いつか行きたいを、みんなで。」を、家族共有のおでかけブックマークとして実用化する。
+## できること
 
-### 実装済み
-- Android / iPhone PWA
-- 家族共有（招待コード）
-- リアルタイム更新の土台
-- 状態: 行きたい / 候補 / 行く予定 / 行った
-- カテゴリ
-- 家族投票
-- Googleマップ
-- 元URL
-- 写真URL / 動画URL
-- 予算 / 年齢 / 所要時間 / メモ
-- OS共有からIKOTへ受け取るShare Target
-- AI整理用Supabase Edge Function
+- Instagram / TikTok / YouTube / X / Web の共有先に IKOT を表示
+- SNSからIKOTへ共有すると、URLを自動で追加画面へ取り込む
+- Supabase Edge Function `ikot-ai` を呼び、Web検索も使って施設情報を整理
+- 施設名 / カテゴリ / 場所 / 予算 / おすすめ年齢 / 所要時間 / メモ / 画像URL / 動画URLを可能な範囲で自動入力
+- AIが特定できない投稿でもURLはそのまま手動保存可能
+- 家族共有、状態変更、編集、削除、投票トグル、Realtime更新
 
-### SNS共有について
-PWAのWeb Share Targetで、OSが共有ダイアログから渡すtitle/text/url（対応環境では画像・動画ファイル）を受け取る設計。
-ただし、Instagram/TikTok/YouTube/Xが毎回同じ情報を外部アプリへ渡す保証はない。SNS内部の投稿画像・動画を無断でスクレイピングして保存する設計にはしていない。
-共有されたURLをサーバー側で解析する場合は、各サービスのAPI・利用規約に従う。
+## ファイル
 
-## セットアップ
-1. Supabaseプロジェクトを作成
-2. 前バージョンの `supabase_setup.sql` を実行（このZIPには互換版を含める）
-3. Authentication > Providers > Anonymous Sign-InsをON
-4. Database > Replicationで `ikot_places` のRealtimeをON
-5. `supabase_functions/ikot-ai/index.ts` をEdge Functionとしてデプロイ
-6. Edge Functionに `OPENAI_API_KEY` をSecretとして設定（ブラウザには絶対に置かない）
-7. index.html等をHTTPSの静的ホスティングへ公開
-8. IKOTをAndroid/iPhoneにインストール
-9. 「家族」から家族を作成→招待コードを奥さんへ送る
+- `index.html` : Webアプリ本体
+- `manifest.webmanifest` : PWA / Android共有ターゲット
+- `sw.js` : Service Worker
+- `icon.svg` : アイコン
+- `supabase_setup.sql` : DB/RLS/RPC。v6では `video_url` 列も追加
+- `index.ts` : Supabase Edge Function `ikot-ai` 用コード
 
-## AI
-AI機能は「URL/タイトル/本文→構造化JSON」を担当。SNSの非公開データ取得やログイン突破はしない。
-画像・動画ファイルを本当にIKOTへ保存する場合は、Supabase Storageを追加し、共有POSTのfilesをStorageへアップロードする拡張が必要。
+## v5からv6へ更新する場合
 
-## 本番運用で追加推奨
-- 匿名ユーザーからGoogle/Apple/メールへのアカウント引継ぎ
-- 画像/動画のStorage
-- URLメタデータ取得のサーバー処理
-- 削除・家族退会・バックアップ
-- 利用規約・プライバシーポリシー
-- レート制限 / ログ / エラー監視
+1. GitHubへこのフォルダのファイルを上書きアップロードする。
+2. Supabase SQL Editorで `supabase_setup.sql` を実行する。既存データは削除しない設計。
+3. Supabase Edge Functionsで `ikot-ai` を作成し、`index.ts` の内容を配置する。
+4. Edge FunctionのSecretに `OPENAI_API_KEY` を登録する。
+5. 任意で `OPENAI_MODEL` を登録する。未設定時は `gpt-5.6-luna`。
+6. `ikot-ai` をDeployする。
+7. PWAの更新が残る場合はIKOTを一度終了して再起動する。共有ターゲット設定を更新した場合は再インストールする。
 
+## AI処理
 
-## v2 共有受け取り修正
-- Share TargetのPOST先 `/share` をService Workerで受信してトップページへリダイレクト。
-- 共有された title / text / url をIKOTの追加画面へ自動入力。
-- `/share` を直接開いた場合の404も回避。
-- 更新後はPWA/Service Workerを一度更新してから共有をテストすること。
+フロントエンドはAIキーを保持しない。IKOTはログイン中のSupabaseクライアントから `sb.functions.invoke("ikot-ai")` を呼ぶ。OpenAI APIキーはSupabase Edge FunctionのSecretだけに保存する。
+
+共有直後はAI整理を自動実行する。手動追加画面でも「✨ URLからAI自動入力」を押せる。
+
+Web検索を使っても、非公開投稿・検索に出ない投稿・情報の少ない投稿では施設を特定できないことがある。その場合は勝手に施設名を作らず、URLだけ保存できる。

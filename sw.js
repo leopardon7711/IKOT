@@ -1,4 +1,4 @@
-const CACHE="ikot-final-v5";
+const CACHE="ikot-final-v6";
 const ASSETS=["./manifest.webmanifest","./icon.svg"];
 
 self.addEventListener("install",event=>{
