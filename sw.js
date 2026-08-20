@@ -1,4 +1,4 @@
-const CACHE = "ikot-final-v7";
+const CACHE = "ikot-final-v8";
 const ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg"
@@ -97,7 +97,27 @@ self.addEventListener("fetch", event => {
 
     return;
   }
+// 一時保存した共有データ・共有画像をIKOT本体へ返す
+if (
+  request.method === "GET" &&
+  (
+    url.pathname.endsWith("/__ikot_shared_data") ||
+    url.pathname.endsWith("/__ikot_shared_image")
+  )
+) {
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const cached = await cache.match(request);
 
+    if (cached) return cached;
+
+    return new Response("Not found", {
+      status: 404
+    });
+  })());
+
+  return;
+}
   if (request.method !== "GET") return;
 
   event.respondWith((async () => {
