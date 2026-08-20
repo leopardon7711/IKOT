@@ -327,9 +327,9 @@ async function readShared(){
   toast(sharedUrl?"SNSのリンクを受け取った！":"共有内容を受け取った！");
   history.replaceState({},document.title,location.pathname);
 
-  if(sharedUrl){
-    await new Promise(r=>setTimeout(r,150));
-    await aiOrganize({auto:true});
+  if(sharedUrl || sharedImageData){
+  await new Promise(r=>setTimeout(r,150));
+  await aiOrganize({auto:true});
   }
 }
 async function aiOrganize(opts={}){
