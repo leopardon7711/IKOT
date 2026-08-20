@@ -336,13 +336,23 @@ async function aiOrganize(opts={}){
   const {auto=false}=opts;
   if(!sb){if(!auto)toast("Supabaseに接続してね");return false}
   const source=$("f_source").value.trim(), memo=$("f_memo").value.trim(), name=$("f_name").value.trim();
-  if(!source && !memo && !name){if(!auto)toast("URLかタイトルを先に入れてね");return false}
+  if(!source && !memo && !name && !sharedImageData){
+  if(!auto) toast("URLか画像を入れてね");
+  return false;
+  }
 
   const btn=$("aiFillBtn");
   if(btn)btn.disabled=true;
   setAiStatus('<span class="spin">◌</span> AIが施設情報を調べています…');
   try{
-    const {data,error}=await sb.functions.invoke("ikot-ai",{body:{title:name,text:memo,url:source}});
+  const {data,error}=await sb.functions.invoke("ikot-ai",{
+  body:{
+    title:name,
+    text:memo,
+    url:source,
+    image:sharedImageData || ""
+  }
+});
     if(error) throw new Error(error.message||String(error));
     if(!data || data.error) throw new Error(data?.error||"AIから結果を受け取れませんでした");
 
