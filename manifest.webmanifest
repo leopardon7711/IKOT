@@ -22,14 +22,6 @@
   "params": {
     "title": "title",
     "text": "text",
-    "url": "url",
-    "files": [
-      {
-        "name": "files",
-        "accept": [
-          "image/*"
-        ]
-      }
-    ]
+    "url": "url"
   }
 }
