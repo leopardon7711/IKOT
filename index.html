@@ -263,11 +263,50 @@ function setAiStatus(text,type=""){
   el.className="aistatus"+(type?" "+type:"");
   el.innerHTML=text;
 }
+  let sharedImageData = "";
+
+async function loadSharedImage(){
+  try{
+    const r = await fetch("./__ikot_shared_image", { cache:"no-store" });
+    if(!r.ok) return "";
+
+    const blob = await r.blob();
+
+    return await new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result || "");
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }catch(e){
+    console.log("共有画像なし", e);
+    return "";
+  }
+}
 function looksLikeVideoUrl(url){
   return /(?:instagram\.com\/(?:reel|reels)|tiktok\.com|youtu\.be|youtube\.com\/(?:watch|shorts))/i.test(url||"");
 }
 async function readShared(){
   const p=new URLSearchParams(location.search);
+    const isImageShare = p.get("share_image")==="1";
+
+  if(isImageShare){
+    try{
+      const dataRes = await fetch("./__ikot_shared_data", {cache:"no-store"});
+
+      if(dataRes.ok){
+        const shared = await dataRes.json();
+
+        if(shared.title && !p.get("title")) p.set("title", shared.title);
+        if(shared.text && !p.get("text")) p.set("text", shared.text);
+        if(shared.url && !p.get("url")) p.set("url", shared.url);
+      }
+
+      sharedImageData = await loadSharedImage();
+    }catch(e){
+      console.error("共有画像読込エラー",e);
+    }
+  }
   const title=p.get("title")||"";
   const text=p.get("text")||"";
   const url=p.get("url")||"";
