@@ -128,13 +128,13 @@ function setButtons(){
 function card(x){
   const map=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x.place||x.name)}`;
   return `<article class="card">
-    <div class="cover">${x.photo?`<img src="${esc(x.photo)}" onerror="this.parentElement.innerHTML='📍'">`:"📍"}</div>
+    <div class="cover">${x.photo_url?`<img src="${esc(x.photo_url)}" onerror="this.parentElement.innerHTML='📍'">`:"📍"}</div>
     <div class="body">
       <div class="title">${esc(x.name)}</div>
       <div class="meta">👤 ${esc(x.who||"")} ・ ${esc(x.state||"")} ${x.place?`・ 📍 ${esc(x.place)}`:""}</div>
       <div class="tags"><span class="tag">${esc(x.category||"その他")}</span>${x.ages?`<span class="tag">👦 ${esc(x.ages)}</span>`:""}${x.duration?`<span class="tag">⏱ ${esc(x.duration)}</span>`:""}${x.budget?`<span class="tag">💴 ${esc(x.budget)}</span>`:""}</div>
       ${x.memo?`<div class="note">${esc(x.memo)}</div>`:""}
-      <div class="actions"><button class="heart" onclick="vote('${x.id}')">❤️ 行きたい！ ${x.votes||0}</button>${x.source?`<a href="${esc(x.source)}" target="_blank" rel="noopener">🔗 元ページ</a>`:""}<a href="${map}" target="_blank" rel="noopener">📍 地図</a><button onclick="cycleState('${x.id}')">状態変更</button><button onclick="editPlace('${x.id}')">編集</button><button onclick="deletePlace('${x.id}')">削除</button></div>
+      <div class="actions"><button class="heart" onclick="vote('${x.id}')">❤️ 行きたい！ ${x.votes||0}</button>${x.source_url?`<a href="${esc(x.source_url)}" target="_blank" rel="noopener">🔗 元ページ</a>`:""}<a href="${map}" target="_blank" rel="noopener">📍 地図</a><button onclick="cycleState('${x.id}')">状態変更</button><button onclick="editPlace('${x.id}')">編集</button><button onclick="deletePlace('${x.id}')">削除</button></div>
     </div></article>`
 }
 function render(){
@@ -185,25 +185,40 @@ function openAdd(){
 }
 async function savePlace(e){
   e.preventDefault();
-
-  try {
-    alert("保存処理スタート");
-
+  if(!sb||!family){toast("先に家族へ参加してね");return}
+  const name=$("f_name").value.trim();
+  if(!name){toast("場所・施設名を入力してね");return}
+  try{
     const payload={
-  e.preventDefault();
-  const payload={family_id:family.id,name:$("f_name").value.trim(),who:$("f_who").value,state:$("f_state").value,category:$("f_cat").value,source_url:$("f_source").value.trim()||null,place:$("f_place").value.trim()||null,budget:$("f_budget").value.trim()||null,ages:$("f_ages").value.trim()||null,duration:$("f_duration").value.trim()||null,photo_url:$("f_photo").value.trim()||null,memo:$("f_memo").value.trim()||null};
-  let res=editingId?await sb.from("ikot_places").update(payload).eq("id",editingId):await sb.from("ikot_places").insert(payload);
-  if(res.error){console.error(res.error);alert("保存失敗: "+(res.error.message||res.error));return}
-  placeDlg.close();await loadPlaces();toast(editingId?"更新した！":"IKOTに保存した！");
-　 } catch(err) {
-    alert("保存処理エラー: " + (err.message || err));
+      family_id:family.id,
+      name,
+      who:$("f_who").value,
+      state:$("f_state").value,
+      category:$("f_cat").value,
+      source_url:$("f_source").value.trim()||null,
+      place:$("f_place").value.trim()||null,
+      budget:$("f_budget").value.trim()||null,
+      ages:$("f_ages").value.trim()||null,
+      duration:$("f_duration").value.trim()||null,
+      photo_url:$("f_photo").value.trim()||null,
+      memo:$("f_memo").value.trim()||null
+    };
+    const res=editingId
+      ? await sb.from("ikot_places").update(payload).eq("id",editingId)
+      : await sb.from("ikot_places").insert(payload);
+    if(res.error) throw res.error;
+    $("placeDlg").close();
+    await loadPlaces();
+    toast(editingId?"更新した！":"IKOTに保存した！");
+  }catch(err){
     console.error(err);
+    alert("保存失敗: "+(err?.message||String(err)));
   }
-  }
+}
 async function vote(id){
   const {error}=await sb.rpc("ikot_vote",{p_place_id:id});
   if(error){console.error(error);toast("投票できなかった");return}
-  await loadPlaces();toast("「行きたい！」を追加");
+  await loadPlaces();toast("「行きたい！」を更新した");
 }
 async function cycleState(id){
   const x=places.find(p=>p.id===id);if(!x)return;
@@ -242,53 +257,29 @@ async function shareApp(){
   else{await navigator.clipboard?.writeText(url);toast("IKOTのURLをコピーした！")}
 }
 function readShared(){
-  const p = new URLSearchParams(location.search);
+  const p=new URLSearchParams(location.search);
+  const title=p.get("title")||"";
+  const text=p.get("text")||"";
+  const url=p.get("url")||"";
+  if(!title&&!text&&!url)return;
 
-  alert(
-    "title=" + (p.get("title") || "") +
-    "\n\ntext=" + (p.get("text") || "") +
-    "\n\nurl=" + (p.get("url") || "") +
-    "\n\nsearch=" + location.search
-  );
+  const combined=[url,text,title].join(" ");
+  const match=combined.match(/https?:\/\/[^\s]+/);
+  const sharedUrl=url||(match?match[0].replace(/[),.;!?]+$/g,""):"");
+  const cleanText=text.replace(/https?:\/\/[^\s]+/g,"").trim();
+  let name=title.trim()||cleanText||"共有した場所";
+  if(/^https?:\/\//.test(name)) name="共有した場所";
 
-  // この下は今ある処理をそのまま残す
+  setTimeout(()=>{
+    openAdd();
+    $("f_name").value=name;
+    $("f_source").value=sharedUrl;
+    $("f_memo").value=(cleanText&&cleanText!==name)?cleanText:"";
+    toast(sharedUrl?"SNSのリンクを受け取った！":"共有内容を受け取った！");
+  },250);
 
-  const title = p.get("title") || "";
-  const text  = p.get("text") || "";
-  const url   = p.get("url") || "";
-
-  // url欄が空でも、共有本文の中からURLを探す
-  const combined = [url, text, title].join(" ");
-  const match = combined.match(/https?:\/\/[^\s]+/);
-  const sharedUrl = url || (match ? match[0] : "");
-
-  // メモからURLだけ取り除く
-  const cleanText = text
-    .replace(/https?:\/\/[^\s]+/g, "")
-    .trim();
-
-  // SNSタイトルが取れていればタイトル優先
-  let name = title.trim();
-
-  // タイトルがない場合は、URLを除いた共有文を仮タイトルにする
-  if(!name){
-    name = cleanText || "共有した場所";
-  }
-
-  if(title || text || url){
-    setTimeout(()=>{
-      openAdd();
-
-      $("f_name").value = name;
-      $("f_source").value = sharedUrl;
-      $("f_memo").value = cleanText && cleanText !== name ? cleanText : "";
-
-    },400);
-
-    history.replaceState({}, document.title, location.pathname);
-  }
+  history.replaceState({},document.title,location.pathname);
 }
-
 async function aiOrganize(){
   const source=$("f_source").value.trim(), memo=$("f_memo").value.trim(), name=$("f_name").value.trim();
   if(!source && !memo && !name){toast("URLかタイトルを先に入れてね");return}

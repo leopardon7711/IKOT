@@ -1,43 +1,38 @@
-const CACHE='ikot-final-v4';
+const CACHE="ikot-final-v5";
+const ASSETS=["./manifest.webmanifest","./icon.svg"];
 
-self.addEventListener('install',e=>{
+self.addEventListener("install",event=>{
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./manifest.webmanifest','./icon.svg'])));
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(self.clients.claim());
+self.addEventListener("activate",event=>{
+  event.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
 
-self.addEventListener('fetch',e=>{
-  const u=new URL(e.request.url);
-
-  // Instagram / X / TikTok / YouTubeなどのOS共有からIKOTへ送られたデータを受け取る
-  if(e.request.method==='POST' && u.pathname.endsWith('/share')){
-    e.respondWith((async()=>{
-      try{
-        const form=await e.request.formData();
-        const params=new URLSearchParams();
-        for(const key of ['title','text','url']){
-          const value=form.get(key);
-          if(typeof value==='string' && value) params.set(key,value);
-        }
-        // 画像・動画ファイルは現バージョンでは保存せず、URL/文字情報だけIKOTへ渡す
-        return Response.redirect(new URL('./?'+params.toString(),u.origin).toString(),303);
-      }catch(err){
-        return Response.redirect(new URL('./',u.origin).toString(),303);
+self.addEventListener("fetch",event=>{
+  if(event.request.method!=="GET") return;
+  const request=event.request;
+  event.respondWith((async()=>{
+    try{
+      const fresh=await fetch(request);
+      if(fresh && fresh.ok){
+        const cache=await caches.open(CACHE);
+        cache.put(request,fresh.clone());
       }
-    })());
-    return;
-  }
-
-  if(e.request.method!=='GET') return;
-
-  // /shareを直接開いた場合も404にせずトップへ
-  if(u.pathname.endsWith('/share')){
-    e.respondWith(caches.match('./index.html').then(r=>r||fetch('./index.html')));
-    return;
-  }
-
-  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));
+      return fresh;
+    }catch(err){
+      const cached=await caches.match(request);
+      if(cached) return cached;
+      if(request.mode==="navigate"){
+        const home=await caches.match("./");
+        if(home) return home;
+      }
+      throw err;
+    }
+  })());
 });
