@@ -1,11 +1,19 @@
-const CACHE = "ikot-final-v8";
+const CACHE = "ikot-final-v9";
+
 const ASSETS = [
-  "./manifest.webmanifest",
-  "./icon.svg"
+  "/",
+  "/index.html",
+  "/manifest.webmanifest",
+  "/icon-192.png",
+  "/icon-512.png"
 ];
 
-const SHARED_IMAGE_URL = "./__ikot_shared_image";
-const SHARED_DATA_URL = "./__ikot_shared_data";
+const SHARED_IMAGE_URL = "/__ikot_shared_image";
+const SHARED_DATA_URL = "/__ikot_shared_data";
+
+/* =========================
+   インストール
+========================= */
 
 self.addEventListener("install", event => {
   self.skipWaiting();
@@ -15,132 +23,111 @@ self.addEventListener("install", event => {
   );
 });
 
+/* =========================
+   有効化・古いキャッシュ削除
+========================= */
+
 self.addEventListener("activate", event => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
 
-    await Promise.all(
-      keys
-        .filter(k => k !== CACHE)
-        .map(k => caches.delete(k))
-    );
+      await Promise.all(
+        keys
+          .filter(key => key !== CACHE)
+          .map(key => caches.delete(key))
+      );
 
-    await self.clients.claim();
-  })());
+      await self.clients.claim();
+    })()
+  );
 });
+
+/* =========================
+   通信
+========================= */
 
 self.addEventListener("fetch", event => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Androidの共有 → IKOT
+  /* -------------------------
+     Android共有 → IKOT
+  ------------------------- */
+
   if (
     request.method === "POST" &&
     url.pathname.endsWith("/share")
   ) {
-    event.respondWith((async () => {
-      try {
-        const form = await request.formData();
+    event.respondWith(
+      (async () => {
+        try {
+          const form = await request.formData();
 
-        const title = form.get("title") || "";
-        const text = form.get("text") || "";
-        const sharedUrl = form.get("url") || "";
-        const file = form.get("files");
+          const title = form.get("title") || "";
+          const text = form.get("text") || "";
+          const sharedUrl = form.get("url") || "";
+          const file = form.get("files");
 
-        const cache = await caches.open(CACHE);
+          const cache = await caches.open(CACHE);
 
-        // 共有された文字情報を保存
-        await cache.put(
-          new Request(new URL(SHARED_DATA_URL, self.location.origin)),
-          new Response(
-            JSON.stringify({
-              title: String(title),
-              text: String(text),
-              url: String(sharedUrl)
-            }),
-            {
-              headers: {
-                "Content-Type": "application/json"
-              }
-            }
-          )
-        );
-
-        // 共有画像を保存
-        if (file instanceof File && file.size > 0) {
+          // 共有された文字情報を保存
           await cache.put(
-            new Request(
-              new URL(SHARED_IMAGE_URL, self.location.origin)
-            ),
-            new Response(file, {
-              headers: {
-                "Content-Type":
-                  file.type || "image/jpeg"
+            SHARED_DATA_URL,
+            new Response(
+              JSON.stringify({
+                title: String(title),
+                text: String(text),
+                url: String(sharedUrl)
+              }),
+              {
+                headers: {
+                  "Content-Type": "application/json"
+                }
               }
-            })
+            )
+          );
+
+          // 共有された画像を保存
+          if (file instanceof File && file.size > 0) {
+            await cache.put(
+              SHARED_IMAGE_URL,
+              new Response(file, {
+                headers: {
+                  "Content-Type":
+                    file.type || "image/jpeg"
+                }
+              })
+            );
+          } else {
+            // 前回共有した画像が残らないよう削除
+            await cache.delete(SHARED_IMAGE_URL);
+          }
+
+          return Response.redirect(
+            new URL("/?share_image=1", self.location.origin),
+            303
+          );
+
+        } catch (err) {
+          console.error("Share receive error:", err);
+
+          return Response.redirect(
+            new URL("/?share_error=1", self.location.origin),
+            303
           );
         }
-
-        return Response.redirect(
-          new URL("./?share_image=1", self.location.origin),
-          303
-        );
-      } catch (err) {
-        console.error("Share receive error:", err);
-
-        return Response.redirect(
-          new URL("./?share_error=1", self.location.origin),
-          303
-        );
-      }
-    })());
+      })()
+    );
 
     return;
   }
-// 一時保存した共有データ・共有画像をIKOT本体へ返す
-if (
-  request.method === "GET" &&
-  (
-    url.pathname.endsWith("/__ikot_shared_data") ||
-    url.pathname.endsWith("/__ikot_shared_image")
-  )
-) {
-  event.respondWith((async () => {
-    const cache = await caches.open(CACHE);
-    const cached = await cache.match(request);
 
-    if (cached) return cached;
+  /* -------------------------
+     一時保存した共有データを返す
+  ------------------------- */
 
-    return new Response("Not found", {
-      status: 404
-    });
-  })());
-
-  return;
-}
-  if (request.method !== "GET") return;
-
-  event.respondWith((async () => {
-    try {
-      const fresh = await fetch(request);
-
-      if (fresh && fresh.ok) {
-        const cache = await caches.open(CACHE);
-        cache.put(request, fresh.clone());
-      }
-
-      return fresh;
-    } catch (err) {
-      const cached = await caches.match(request);
-
-      if (cached) return cached;
-
-      if (request.mode === "navigate") {
-        const home = await caches.match("./");
-        if (home) return home;
-      }
-
-      throw err;
-    }
-  })());
-});
+  if (
+    request.method === "GET" &&
+    (
+      url.pathname.ends
